@@ -140,11 +140,6 @@ app.post("/addgame", async (req, res) => {
 })
 
 // get game data
-// app.get("/game", (req, res) => async () =>{
-//   const data = await gameModel.find({})
-//   res.send(JSON.stringify(data))
-// })
-
 app.get("/game", (req, res) => {
   gameModel
     .find({})
@@ -157,6 +152,21 @@ app.get("/game", (req, res) => {
       res.status(500).send({ message: "Internal Server Error" })
     })
 })
+
+//get user data
+app.get("/user", (req, res) => {
+  userModel
+    .find({})
+    .exec()
+    .then((data) => {
+      res.send((JSON.stringify(data)));
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).send({ message: "Internal Server Error" })
+    })
+})
+
 
 
 //server running
