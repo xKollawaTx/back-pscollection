@@ -107,8 +107,8 @@ const gameSchema = mongoose.Schema({
   gener: String,
   rating: String,
   publisher: String,
-  dateAdded: {type: Date, default: Date.now}
-});
+  dateAdded: { type: Date, default: Date.now }
+}, { timestamps: true });
 const gameModel = mongoose.model("game", gameSchema);
 
 //save game data
@@ -123,9 +123,9 @@ app.post("/addgame", async (req, res) => {
     .then((result) => {
       if (result) {
         if (result.platform === platform) {
-            if(result.name === name){
-                res.send({ message: "Game Already Exist", alert: "false" })
-            }
+          if (result.name === name) {
+            res.send({ message: "Game Already Exist", alert: "false" })
+          }
         }
       } else {
         const data = gameModel(req.body)
@@ -152,6 +152,77 @@ app.get("/game", (req, res) => {
       res.status(500).send({ message: "Internal Server Error" })
     })
 })
+
+// Search game by name
+app.get("/searchgame", (req, res) => {
+  const { name } = req.query;
+
+  const regex = new RegExp(`^${name}`, "i");
+
+  gameModel
+    .find({ name: { $regex: regex } })
+    .exec()
+    .then((data) => {
+      if (data.length > 0) {
+        res.status(200).json(data);
+      } else {
+        gameModel.findOne({ name }).exec().then((game) => {
+          if (game) {
+            res.status(200).json([game]);
+          } else {
+            res.status(404).json({ message: "Game not found" });
+          }
+        });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+// Edit game
+app.put("/editgame/:id", (req, res) => {
+  const { id } = req.params;
+  const updatedGame = req.body;
+
+  gameModel
+    .findByIdAndUpdate(id, updatedGame, { new: true })
+    .exec()
+    .then((game) => {
+      if (game) {
+        res.status(200).json({ message: "Game updated successfully" });
+      } else {
+        res.status(404).json({ message: "Game not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+// Delete game
+app.delete("/deletegame/:id", (req, res) => {
+  const { id } = req.params;
+
+  gameModel
+    .findByIdAndDelete(id)
+    .exec()
+    .then((game) => {
+      if (game) {
+        res.status(200).json({ message: "Game deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Game not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+
 
 //get user data
 app.get("/user", (req, res) => {
