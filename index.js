@@ -182,16 +182,14 @@ app.get("/searchgame", (req, res) => {
 });
 
 // Edit game
-app.put("/editgame/:id", (req, res) => {
+app.get("/game/:id", (req, res) => {
   const { id } = req.params;
-  const updatedGame = req.body;
-
   gameModel
-    .findByIdAndUpdate(id, updatedGame, { new: true })
+    .findById(id)
     .exec()
     .then((game) => {
       if (game) {
-        res.status(200).json({ message: "Game updated successfully" });
+        res.status(200).json(game);
       } else {
         res.status(404).json({ message: "Game not found" });
       }
@@ -222,7 +220,24 @@ app.delete("/deletegame/:id", (req, res) => {
     });
 });
 
-
+// Get game details by ID
+app.get("/game/:id", (req, res) => {
+  const { id } = req.params;
+  gameModel
+    .findById(id)
+    .exec()
+    .then((game) => {
+      if (game) {
+        res.send(JSON.stringify(game))
+      } else {
+        res.status(404).json({ message: "Game not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
 
 //get user data
 app.get("/user", (req, res) => {
@@ -237,8 +252,6 @@ app.get("/user", (req, res) => {
       res.status(500).send({ message: "Internal Server Error" })
     })
 })
-
-
 
 //server running
 app.listen(PORT, () => console.log("Server is running on port :" + PORT));
