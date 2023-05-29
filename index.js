@@ -291,11 +291,8 @@ const collectionSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "user",
   },
-  game: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "game",
-  },
-});
+  gameIds:[mongoose.Schema.Types.Mixed],
+}, { timestamps: true});
 const collectionModel = mongoose.model("collection", collectionSchema);
 
 //Create collection
@@ -335,15 +332,61 @@ app.post("/createcollection", (req, res) => {
     });
 });
 
-// Get collection data
+// add game id to collection
+app.post("/collection/addgame/:id", (req, res) => {
+  const { id } = req.params;
+  const { gameId } = req.body;
+  collectionModel
+    .findById(id)
+    .exec()
+    .then((collection) => {
+      if (collection) {
+        if (collection.gameIds.includes(gameId)) {
+          res.send({
+            message: "Game already exists in the collection",
+            alert: "false",
+          });
+        } else {
+          collectionModel
+            .findByIdAndUpdate(
+              id,
+              {
+                $push: { gameIds: gameId },
+              },
+              { new: true }
+            )
+            .exec()
+            .then((updatedCollection) => {
+              res.send({
+                message: "Game added to collection successfully",
+                alert: "true",
+              });
+            })
+            .catch((err) => {
+              console.log(err);
+              res.status(500).json({ message: "Internal Server Error" });
+            });
+        }
+      } else {
+        res.status(404).json({ message: "Collection not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+
+
+// Get all collections
 app.get("/collection", (req, res) => {
   collectionModel
     .find({})
     .populate("user")
-    .populate("game")
     .exec()
-    .then((data) => {
-      res.send(JSON.stringify(data));
+    .then((collections) => {
+      res.send(JSON.stringify(collections));
     })
     .catch((err) => {
       console.log(err);
@@ -351,13 +394,13 @@ app.get("/collection", (req, res) => {
     });
 });
 
+
 // Get collection by user ID
-app.get("/collection/:id", (req, res) => {
+app.get("/collection/user/:id", (req, res) => {
   const { id } = req.params;
   collectionModel
     .find({ user: id })
     .populate("user")
-    .populate("game")
     .exec()
     .then((collection) => {
       if (collection) {
