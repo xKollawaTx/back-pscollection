@@ -187,17 +187,28 @@ app.get("/searchgame", (req, res) => {
 });
 
 // Edit game
-app.get("/game/:id", (req, res) => {
+app.put("/editgame/:id", (req, res) => {
   const { id } = req.params;
+  const { image, name, platform, gener, rating, publisher } = req.body;
   gameModel
-    .findById(id)
+    .findByIdAndUpdate(
+      id,
+      {
+        image: image,
+        name: name,
+        platform: platform,
+        gener: gener,
+        rating: rating,
+        publisher: publisher,
+      },
+      { new: true }
+    )
     .exec()
-    .then((game) => {
-      if (game) {
-        res.status(200).json(game);
-      } else {
-        res.status(404).json({ message: "Game not found" });
-      }
+    .then((updatedGame) => {
+      res.send({
+        message: "Game updated successfully",
+        game: updatedGame,
+      });
     })
     .catch((err) => {
       console.log(err);
@@ -391,6 +402,91 @@ app.get("/collection", (req, res) => {
     .catch((err) => {
       console.log(err);
       res.status(500).send({ message: "Internal Server Error" });
+    });
+});
+
+// Get collection by ID
+app.get("/collection/:id", (req, res) => {
+  const { id } = req.params;
+  collectionModel
+    .findById(id)
+    .populate("user")
+    .exec()
+    .then((collection) => {
+      if (collection) {
+        res.send(JSON.stringify(collection));
+      } else {
+        res.status(404).json({ message: "Collection not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+//get game id from collection id
+app.get("/collection/game/:id", (req, res) => {
+  const { id } = req.params;
+  collectionModel
+    .findById(id)
+    .populate("gameIds")
+    .exec()
+    .then((collection) => {
+      if (collection) {
+        res.send(JSON.stringify(collection));
+      } else {
+        res.status(404).json({ message: "Collection not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+//delete collection
+app.delete("/deletecollection/:id", (req, res) => {
+  const { id } = req.params;
+  collectionModel
+    .findByIdAndDelete(id)
+    .exec()
+    .then((collection) => {
+      if (collection) {
+        res.status(200).json({ message: "Collection deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Collection not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+
+//delete gameID from collection
+app.delete("/collection/deletegame/:id", (req, res) => {
+  const { id } = req.params;
+  const { gameId } = req.body;
+  collectionModel
+    .findByIdAndUpdate(
+      id,
+      {
+        $pull: { gameIds: gameId },
+      },
+      { new: true }
+    )
+    .exec()
+    .then((updatedCollection) => {
+      res.send({
+        message: "Game deleted from collection successfully",
+        alert: "true",
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
     });
 });
 
