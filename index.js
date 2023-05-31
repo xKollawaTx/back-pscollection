@@ -269,34 +269,52 @@ app.get("/user", (req, res) => {
     });
 });
 
-// Update user account
+
+// Update user data by ID and check if email or username already exist
 app.put("/updateuser/:id", (req, res) => {
   const { id } = req.params;
   const { email, username, password, confirmpassword, image } = req.body;
   userModel
-    .findByIdAndUpdate(
-      id,
-      {
-        email: email,
-        username: username,
-        password: password,
-        confirmpassword: confirmpassword,
-        image: image,
-      },
-      { new: true }
-    )
+    .findById(id)
     .exec()
-    .then((updatedUser) => {
-      res.send({
-        message: "User updated successfully",
-        user: updatedUser,
-      });
+    .then((user) => {
+      if (user) {
+        if (user.email === email) {
+          res.send({ message: "Email Already Exist", alert: "false" });
+        } else if (user.username === username) {
+          res.send({ message: "Username Already Exist", alert: "false" });
+        } else {
+          userModel
+            .findByIdAndUpdate(
+              id,
+              {
+                email: email,
+                username: username,
+                password: password,
+                confirmpassword: confirmpassword,
+                image: image,
+              },
+              { new: true }
+            )
+            .exec()
+            .then((updatedUser) => {
+              res.send({message: "User updated successfully", user: updatedUser});
+            })
+            .catch((err) => {
+              console.log(err);
+              res.status(500).json({ message: "Internal Server Error" });
+            });
+        }
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
     })
     .catch((err) => {
       console.log(err);
       res.status(500).json({ message: "Internal Server Error" });
     });
 });
+          
 
 //collection section
 const collectionSchema = mongoose.Schema({
