@@ -270,28 +270,31 @@ app.get("/user", (req, res) => {
 });
 
 // Update user account
-app.post("/updateAccount", (req, res) => {
-  const { email, username, password, confirmPassword, image } = req.body;
-
-  // Update the user in the database
+app.put("/updateuser/:id", (req, res) => {
+  const { id } = req.params;
+  const { email, username, password, confirmpassword, image } = req.body;
   userModel
-    .findOneAndUpdate(
-      { email: email },
+    .findByIdAndUpdate(
+      id,
       {
+        email: email,
         username: username,
         password: password,
-        confirmPassword: confirmPassword,
+        confirmpassword: confirmpassword,
         image: image,
       },
       { new: true }
     )
     .exec()
     .then((updatedUser) => {
-      res.send({ message: "Account updated successfully", user: updatedUser });
+      res.send({
+        message: "User updated successfully",
+        user: updatedUser,
+      });
     })
     .catch((err) => {
       console.log(err);
-      res.status(500).send({ message: "Internal Server Error" });
+      res.status(500).json({ message: "Internal Server Error" });
     });
 });
 
@@ -445,6 +448,26 @@ app.get("/collection/game/:id", (req, res) => {
     });
 });
 
+//edit collection
+app.put("/updatecollection/:id", (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  collectionModel
+    .findByIdAndUpdate(id, { name: name }, { new: true })
+    .exec()
+    .then((updatedCollection) => {
+      res.send({
+        message: "Collection updated successfully",
+        collection: updatedCollection,
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+
 //delete collection
 app.delete("/deletecollection/:id", (req, res) => {
   const { id } = req.params;
@@ -465,24 +488,24 @@ app.delete("/deletecollection/:id", (req, res) => {
 });
 
 
-//delete gameID from collection
-app.delete("/collection/deletegame/:id", (req, res) => {
-  const { id } = req.params;
-  const { gameId } = req.body;
+//delete gameID from collectionID
+app.delete("/collection/:id/deletegame/:gameid", (req, res) => {
+  const { id, gameid } = req.params;
   collectionModel
     .findByIdAndUpdate(
       id,
       {
-        $pull: { gameIds: gameId },
+        $pull: { gameIds: gameid },
       },
       { new: true }
-    )
+    ) 
     .exec()
-    .then((updatedCollection) => {
-      res.send({
-        message: "Game deleted from collection successfully",
-        alert: "true",
-      });
+    .then((collection) => {
+      if (collection) {
+        res.status(200).json({ message: "Game deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Game not found" });
+      }
     })
     .catch((err) => {
       console.log(err);
