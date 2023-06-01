@@ -105,7 +105,7 @@ const gameSchema = mongoose.Schema(
     image: String,
     name: String,
     platform: String,
-    gener: String,
+    genre: String,
     rating: String,
     publisher: String,
     dateAdded: { type: Date, default: Date.now },
@@ -189,7 +189,7 @@ app.get("/searchgame", (req, res) => {
 // Edit game
 app.put("/editgame/:id", (req, res) => {
   const { id } = req.params;
-  const { image, name, platform, gener, rating, publisher } = req.body;
+  const { image, name, platform, genre, rating, publisher } = req.body;
   gameModel
     .findByIdAndUpdate(
       id,
@@ -197,7 +197,7 @@ app.put("/editgame/:id", (req, res) => {
         image: image,
         name: name,
         platform: platform,
-        gener: gener,
+        genre: genre,
         rating: rating,
         publisher: publisher,
       },
@@ -269,7 +269,6 @@ app.get("/user", (req, res) => {
     });
 });
 
-
 // Update user data by ID and check if email or username already exist
 app.put("/updateuser/:id", (req, res) => {
   const { id } = req.params;
@@ -298,7 +297,10 @@ app.put("/updateuser/:id", (req, res) => {
             )
             .exec()
             .then((updatedUser) => {
-              res.send({message: "User updated successfully", user: updatedUser});
+              res.send({
+                message: "User updated successfully",
+                user: updatedUser,
+              });
             })
             .catch((err) => {
               console.log(err);
@@ -314,17 +316,19 @@ app.put("/updateuser/:id", (req, res) => {
       res.status(500).json({ message: "Internal Server Error" });
     });
 });
-          
 
 //collection section
-const collectionSchema = mongoose.Schema({
-  name: String,
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "user",
+const collectionSchema = mongoose.Schema(
+  {
+    name: String,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+    },
+    gameIds: [mongoose.Schema.Types.Mixed],
   },
-  gameIds:[mongoose.Schema.Types.Mixed],
-}, { timestamps: true});
+  { timestamps: true }
+);
 const collectionModel = mongoose.model("collection", collectionSchema);
 
 //Create collection
@@ -409,8 +413,6 @@ app.post("/collection/addgame/:id", (req, res) => {
     });
 });
 
-
-
 // Get all collections
 app.get("/collection", (req, res) => {
   collectionModel
@@ -485,7 +487,6 @@ app.put("/updatecollection/:id", (req, res) => {
     });
 });
 
-
 //delete collection
 app.delete("/deletecollection/:id", (req, res) => {
   const { id } = req.params;
@@ -505,7 +506,6 @@ app.delete("/deletecollection/:id", (req, res) => {
     });
 });
 
-
 //delete gameID from collectionID
 app.delete("/collection/:id/deletegame/:gameid", (req, res) => {
   const { id, gameid } = req.params;
@@ -516,7 +516,7 @@ app.delete("/collection/:id/deletegame/:gameid", (req, res) => {
         $pull: { gameIds: gameid },
       },
       { new: true }
-    ) 
+    )
     .exec()
     .then((collection) => {
       if (collection) {
@@ -530,7 +530,6 @@ app.delete("/collection/:id/deletegame/:gameid", (req, res) => {
       res.status(500).json({ message: "Internal Server Error" });
     });
 });
-
 
 // Get collection by user ID
 app.get("/collection/user/:id", (req, res) => {
@@ -552,6 +551,111 @@ app.get("/collection/user/:id", (req, res) => {
     });
 });
 
-
 //server running
 app.listen(PORT, () => console.log("Server is running on port :" + PORT));
+
+//Request section
+const requestSchema = mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+    },
+    image: String,
+    name: String,
+    platform: String,
+    genre: String,
+    rating: String,
+    publisher: String,
+    dateAdded: { type: Date, default: Date.now },
+    state: String,
+  },
+  { timestamps: true }
+);
+const requestModel = mongoose.model("request", requestSchema);
+
+//add request by user
+app.post("/createrequest", (req, res) => {
+  const { userId, image, name, platform, genre, rating, publisher, state } =
+    req.body;
+
+  // Validate request data
+  if (
+    !userId ||
+    !image ||
+    !name ||
+    !platform ||
+    !genre ||
+    !rating ||
+    !publisher ||
+    !state
+  ) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  // Create a new request
+  const newRequest = new requestModel({
+    user: userId,
+    image,
+    name,
+    platform,
+    genre,
+    rating,
+    publisher,
+    state,
+  });
+
+  // Save the request to the database
+  newRequest
+    .save()
+    .then((savedRequest) => {
+      res
+        .status(201)
+        .json({
+          message: "Request created successfully",
+          request: savedRequest,
+        });
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+//get request data
+app.get("/request", (req, res) => {
+  requestModel
+    .find({})
+    .populate("user")
+    .exec()
+    .then((data) => {
+      res.send(JSON.stringify(data));
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).send({ message: "Internal Server Error" });
+    });
+});
+
+//get request data by user id
+app.get("/request/user/:id", (req, res) => {
+  const { id } = req.params;
+  requestModel
+    .find({ user: id })
+    .populate("user")
+    .exec()
+    .then((request) => {
+      if (request) {
+        res.send(JSON.stringify(request));
+        res.status(200).json({ message: "Request found" });
+      } else {
+        res.status(404).json({ message: "Request not found" });
+      }
+    }
+    )
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+    );
+});
