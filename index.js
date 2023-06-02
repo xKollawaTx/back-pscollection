@@ -609,12 +609,10 @@ app.post("/createrequest", (req, res) => {
   newRequest
     .save()
     .then((savedRequest) => {
-      res
-        .status(201)
-        .json({
-          message: "Request created successfully",
-          request: savedRequest,
-        });
+      res.status(201).json({
+        message: "Request created successfully",
+        request: savedRequest,
+      });
     })
     .catch((err) => {
       console.error(err);
@@ -645,17 +643,64 @@ app.get("/request/user/:id", (req, res) => {
     .populate("user")
     .exec()
     .then((request) => {
-      if (request) {
+      if (request.length > 0) {
         res.send(JSON.stringify(request));
-        res.status(200).json({ message: "Request found" });
       } else {
         res.status(404).json({ message: "Request not found" });
       }
-    }
-    )
+    })
     .catch((err) => {
       console.log(err);
       res.status(500).json({ message: "Internal Server Error" });
-    }
-    );
+    });
+});
+
+//edit request by id
+app.put("/updaterequest/:id", (req, res) => {
+  const { id } = req.params;
+  const { image, name, platform, genre, rating, publisher, state } = req.body;
+  requestModel
+    .findByIdAndUpdate(
+      id,
+      {
+        image: image,
+        name: name,
+        platform: platform,
+        genre: genre,
+        rating: rating,
+        publisher: publisher,
+        state: state,
+      },
+      { new: true }
+    )
+    .exec()
+    .then((updatedRequest) => {
+      res.send({
+        message: "Request updated successfully",
+        request: updatedRequest,
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
+//delete request by id
+app.delete("/deleterequest/:id", (req, res) => {
+  const { id } = req.params;
+  requestModel
+    .findByIdAndDelete(id)
+    .exec()
+    .then((request) => {
+      if (request) {
+        res.status(200).json({ message: "Request deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Request not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
 });
