@@ -269,6 +269,26 @@ app.get("/user", (req, res) => {
     });
 });
 
+//get user data by id
+app.get("/user/:id", (req, res) => {
+  const { id } = req.params;
+  userModel
+    .findById(id)
+    .exec()
+    .then((user) => {
+      if (user) {
+        res.send(JSON.stringify(user));
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).send({ message: "Internal Server Error" });
+    });
+});
+
+
 // Update user data by ID and check if email or username already exist
 app.put("/updateuser/:id", (req, res) => {
   const { id } = req.params;
