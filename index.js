@@ -105,41 +105,37 @@ const gameSchema = mongoose.Schema(
     image: String,
     name: String,
     platform: String,
-    genre: String,
+    genre: [String], // Change to an array of strings
     rating: String,
     publisher: String,
     dateAdded: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
+
 const gameModel = mongoose.model("game", gameSchema);
 
-//add game by admin
+// add game by admin
 app.post("/addgame", async (req, res) => {
   console.log(req.body);
-  const { name } = req.body;
-  const { platform } = req.body;
-  gameModel
-    .findOne({ name: name }, { platform: platform })
-    .exec()
-    .then((result) => {
-      if (result) {
-        if (result.platform === platform) {
-          if (result.name === name) {
-            res.send({ message: "Game Already Exist", alert: "false" });
-          }
-        }
-      } else {
-        const data = gameModel(req.body);
-        const datasave = data.save();
-        res.send({ message: "Game added successfully", alert: "true" });
-      }
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).send({ message: "Internal Server Error" });
-    });
+  const { name, platform } = req.body;
+  
+  try {
+    const existingGame = await gameModel.findOne({ name, platform }).exec();
+
+    if (existingGame) {
+      res.send({ message: "Game Already Exists", alert: "false" });
+    } else {
+      const data = gameModel(req.body);
+      const savedData = await data.save();
+      res.send({ message: "Game added successfully", alert: "true" });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Internal Server Error" });
+  }
 });
+
 
 // get game data
 app.get("/game", (req, res) => {
@@ -288,6 +284,24 @@ app.get("/user/:id", (req, res) => {
     });
 });
 
+//get user data by username
+app.get("/getuser/:username", (req, res) => {
+  const { username } = req.params;
+  userModel
+    .findOne({ username }) // Find user by username
+    .exec()
+    .then((user) => {
+      if (user) {
+        res.send(user);
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).send({ message: "Internal Server Error" });
+    });
+});
 
 // Update user data by ID and check if email or username already exist
 app.put("/updateuser/:id", (req, res) => {
@@ -299,9 +313,9 @@ app.put("/updateuser/:id", (req, res) => {
     .then((user) => {
       if (user) {
         if (user.email === email) {
-          res.send({ message: "Email Already Exist", alert: "false" });
+          res.status(400).json({ message: "Email Already Exists" });
         } else if (user.username === username) {
-          res.send({ message: "Username Already Exist", alert: "false" });
+          res.status(400).json({ message: "Username Already Exists" });
         } else {
           userModel
             .findByIdAndUpdate(
@@ -323,8 +337,19 @@ app.put("/updateuser/:id", (req, res) => {
               });
             })
             .catch((err) => {
-              console.log(err);
-              res.status(500).json({ message: "Internal Server Error" });
+              if (err.code === 11000) {
+                // Duplicate key error
+                if (err.keyPattern.username) {
+                  res.status(400).json({ message: "Username Already Exists" });
+                } else if (err.keyPattern.email) {
+                  res.status(400).json({ message: "Email Already Exists" });
+                } else {
+                  res.status(500).json({ message: "Internal Server Error" });
+                }
+              } else {
+                console.log(err);
+                res.status(500).json({ message: "Internal Server Error" });
+              }
             });
         }
       } else {
@@ -336,6 +361,7 @@ app.put("/updateuser/:id", (req, res) => {
       res.status(500).json({ message: "Internal Server Error" });
     });
 });
+
 
 //collection section
 const collectionSchema = mongoose.Schema(
@@ -468,6 +494,26 @@ app.get("/collection/:id", (req, res) => {
     });
 });
 
+// Get collection by game ID
+app.get("/collection/game/:id", (req, res) => {
+  const { id } = req.params;
+  collectionModel
+    .find({ gameIds: id })
+    .populate("user")
+    .exec()
+    .then((collection) => {
+      if (collection) {
+        res.send(JSON.stringify(collection));
+      } else {
+        res.status(404).json({ message: "Collection not found" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
+
 //get game id from collection id
 app.get("/collection/game/:id", (req, res) => {
   const { id } = req.params;
@@ -584,7 +630,7 @@ const requestSchema = mongoose.Schema(
     image: String,
     name: String,
     platform: String,
-    genre: String,
+    genre: [String],
     rating: String,
     publisher: String,
     dateAdded: { type: Date, default: Date.now },
