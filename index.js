@@ -597,6 +597,30 @@ app.delete("/collection/:id/deletegame/:gameid", (req, res) => {
     });
 });
 
+// DELETE route to remove a game ID from all collections
+app.put("/collection/deletegame/:gameId", async (req, res) => {
+  try {
+    const gameId = req.params.gameId;
+
+    // Update all collections that have the game ID in their "gameIds" array
+    const result = await collectionModel.updateMany(
+      { gameIds: gameId },
+      { $pull: { gameIds: gameId } }
+    );
+
+    if (result.n >= 0 && result.nModified >= 0) {
+      res.status(200).json({ message: "Game ID deleted from all collections" });
+    } else {
+      res.status(404).json({ message: "Game ID deleted from all collections" });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Failed to delete game ID from collections" });
+  }
+});
+
+
+
 // Get collection by user ID
 app.get("/collection/user/:id", (req, res) => {
   const { id } = req.params;
